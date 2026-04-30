@@ -1,82 +1,147 @@
-const YT_API_KEY = 'AlzaSyArLJC-WQUZ4UOS2kXT1CerwgDSiicrxk_w'; // Aapki Key
+const YT_KEY = 'AlzaSyArLJC-WQUZ4UOS2kXT1CerwgDSiicrxk_w'; //
 
-// YouTube API ko load karne ka sahi tareeka
-let tag = document.createElement('script');
-tag.src = "https://www.youtube.com/iframe_api";
-let firstScriptTag = document.getElementsByTagName('script')[0];
-firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+const state = {
+    player: null,
+    currentTrack: null,
+    queue: [],
+    currentIndex: -1,
+    isPlaying: false,
+    isShuffle: false,
+    isRepeat: false,
+    recent: JSON.parse(localStorage.getItem('recent_wavify') || '[]')
+};
 
-let player;
-let isReady = false;
-
+// 1. YouTube Lifecycle
 function onYouTubeIframeAPIReady() {
-    player = new YT.Player('ytPlayer', {
+    state.player = new YT.Player('ytIframe', {
         height: '0', width: '0',
         events: {
-            'onReady': () => { 
-                isReady = true; 
-                loadTrending(); // Page khulte hi gaane load honge
-            }
+            'onReady': () => { initApp(); },
+            'onStateChange': onPlayerStateChange
         }
     });
 }
 
-// Trending Songs Load Karne ka function
-async function loadTrending() {
-    const songs = await fetchFromYT("top bollywood songs 2024");
-    displaySongs(songs, 'trendingRow');
+function initApp() {
+    fetchTrending();
+    setupEventListeners();
+    updateRecentUI();
 }
 
-// Search Logic
-document.getElementById('searchInput').onkeypress = async (e) => {
-    if (e.key === 'Enter') {
-        const query = e.target.value;
-        document.getElementById('searchResults').style.display = 'block';
-        document.getElementById('resultsLabel').innerText = `Results for: ${query}`;
-        const results = await fetchFromYT(query);
-        displaySongs(results, 'resultsList');
-    }
-};
-
-async function fetchFromYT(query) {
-    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=10&q=${query}&type=video&videoCategoryId=10&key=${YT_API_KEY}`;
+// 2. Core Search Logic (with Debounce)
+async function fetchYT(query) {
     try {
-        const res = await fetch(url);
+        const res = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=12&q=${encodeURIComponent(query)}&type=video&videoCategoryId=10&key=${YT_KEY}`);
         const data = await res.json();
-        return data.items.map(item => ({
-            id: item.id.videoId,
-            title: item.snippet.title,
-            artist: item.snippet.channelTitle,
-            thumb: item.snippet.thumbnails.medium.url
+        if (data.error) throw new Error(data.error.message);
+        return data.items.map(v => ({
+            id: v.id.videoId,
+            title: v.snippet.title,
+            artist: v.snippet.channelTitle,
+            thumb: v.snippet.thumbnails.high.url
         }));
-    } catch (err) {
-        console.error("API Error:", err);
+    } catch (e) {
+        console.error("API Error:", e);
         return [];
     }
 }
 
-function displaySongs(songs, containerId) {
+// 3. UI Rendering
+function renderGrid(songs, containerId) {
     const container = document.getElementById(containerId);
-    container.innerHTML = '';
-    songs.forEach(song => {
-        const div = document.createElement('div');
-        div.style.cursor = "pointer";
-        div.innerHTML = `
-            <div class="song-item" style="margin-bottom:10px; display:flex; gap:10px; align-items:center;">
-                <img src="${song.thumb}" width="60">
-                <div>
-                    <p style="margin:0; font-size:14px;"><b>${song.title.substring(0,30)}</b></p>
-                    <small>${song.artist}</small>
-                </div>
-            </div>
-        `;
-        div.onclick = () => {
-            player.loadVideoById(song.id);
-            document.getElementById('miniPlayer').classList.remove('hidden');
-            document.getElementById('miniTitle').innerText = song.title;
-            document.getElementById('miniThumb').src = song.thumb;
-        };
-        container.appendChild(div);
-    });
+    container.innerHTML = songs.map((s, index) => `
+        <div class="song-card" onclick="playSong(${JSON.stringify(s).replace(/"/g, '&quot;')}, '${containerId}')">
+            <img src="${s.thumb}">
+            <h3>${s.title}</h3>
+            <p>${s.artist}</p>
+        </div>
+    `).join('');
 }
 
+// 4. Playback Logic
+function playSong(song, sourceContainer = null) {
+    state.currentTrack = song;
+    state.player.loadVideoById(song.id);
+    
+    // Update UI
+    document.getElementById('playerBar').classList.remove('hidden');
+    document.getElementById('playerTitle').innerText = song.title;
+    document.getElementById('playerArtist').innerText = song.artist;
+    document.getElementById('playerThumb').src = song.thumb;
+    document.getElementById('playPauseBtn').innerText = '⏸';
+    state.isPlaying = true;
+
+    // Save to Recent
+    state.recent = [song, ...state.recent.filter(i => i.id !== song.id)].slice(0, 6);
+    localStorage.setItem('recent_wavify', JSON.stringify(state.recent));
+    updateRecentUI();
+}
+
+function onPlayerStateChange(e) {
+    if (e.data === YT.PlayerState.PLAYING) {
+        state.isPlaying = true;
+        document.getElementById('playPauseBtn').innerText = '⏸';
+        updateProgress();
+    } else if (e.data === YT.PlayerState.PAUSED) {
+        state.isPlaying = false;
+        document.getElementById('playPauseBtn').innerText = '▶';
+    }
+}
+
+function updateProgress() {
+    if (!state.isPlaying) return;
+    const curr = state.player.getCurrentTime();
+    const dur = state.player.getDuration();
+    const perc = (curr / dur) * 100;
+    document.getElementById('progressFill').style.width = perc + '%';
+    document.getElementById('currentTime').innerText = formatTime(curr);
+    document.getElementById('duration').innerText = formatTime(dur);
+    setTimeout(updateProgress, 1000);
+}
+
+// 5. Helpers & Events
+function formatTime(s) {
+    let m = Math.floor(s / 60);
+    s = Math.floor(s % 60);
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
+}
+
+function setupEventListeners() {
+    // Navigation
+    document.querySelectorAll('.nav-item').forEach(btn => {
+        btn.onclick = () => {
+            document.querySelectorAll('.nav-item, .page').forEach(el => el.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById(`page-${btn.dataset.page}`).classList.add('active');
+        };
+    });
+
+    // Search
+    let timeout;
+    document.getElementById('searchInput').oninput = (e) => {
+        clearTimeout(timeout);
+        timeout = setTimeout(async () => {
+            if (e.target.value.length < 2) return;
+            const results = await fetchYT(e.target.value);
+            renderGrid(results, 'resultsList');
+        }, 500);
+    };
+
+    // Play/Pause
+    document.getElementById('playPauseBtn').onclick = () => {
+        if (state.isPlaying) state.player.pauseVideo();
+        else state.player.playVideo();
+    };
+}
+
+async function fetchTrending() {
+    const data = await fetchYT("latest trending songs 2026");
+    renderGrid(data, 'trendingRow');
+}
+
+function updateRecentUI() {
+    if (state.recent.length > 0) {
+        document.getElementById('recentSection').style.display = 'block';
+        renderGrid(state.recent, 'recentRow');
+    }
+}
