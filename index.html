@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,6 +9,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
+  <style>
+    /* Taaki load hote hi screen khali na dikhe */
+    #ytContainer { position: absolute; top: -1000px; left: -1000px; visibility: hidden; }
+    .hidden { display: none !important; }
+  </style>
 </head>
 <body>
 
@@ -21,6 +27,7 @@
         <button class="nav-btn" data-page="search">Search</button>
         <button class="nav-btn" data-page="library">Library</button>
       </nav>
+
       <div class="sidebar-section">
         <p class="sidebar-label">Playlists</p>
         <button class="create-playlist-btn" id="createPlaylistBtn">Create Playlist</button>
@@ -33,13 +40,19 @@
         <header class="page-header">
           <h1 id="greeting">Good evening</h1>
         </header>
-        <div class="quick-picks" id="quickPicks"></div>
+
+        <div class="quick-picks" id="quickPicks">
+           </div>
+
         <section class="section">
-          <h2>Trending Now 🔥</h2>
+          <div class="section-header">
+            <h2>Trending Now 🔥</h2>
+          </div>
           <div class="cards-row" id="trendingRow">
-             <p id="loadingMsg">Songs load ho rahe hain, thoda intezar karein...</p>
+            <p style="padding:20px; color:#aaa;">Loading songs...</p>
           </div>
         </section>
+
         <section class="section" id="recommendedSection" style="display:none">
           <h2>Recommended ✨</h2>
           <div class="cards-row" id="recommendedRow"></div>
@@ -48,29 +61,44 @@
 
       <section class="page" id="page-search">
         <div class="search-container">
-          <input type="text" id="searchInput" placeholder="Gaane search karein..." />
+          <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Search songs, artists..." autocomplete="off" />
+          </div>
         </div>
         <div id="searchResults" style="display:none">
-          <p id="resultsLabel"></p>
+          <p class="results-label" id="resultsLabel"></p>
           <div class="results-list" id="resultsList"></div>
         </div>
+      </section>
+
+      <section class="page" id="page-library">
+        <h1>Your Library</h1>
+        <div class="lib-tabs">
+          <button class="lib-tab active" data-tab="liked">Liked</button>
+        </div>
+        <div id="likedList" class="results-list"></div>
       </section>
     </main>
 
     <div id="miniPlayer" class="hidden">
-      <img id="miniThumb" src="" style="width:40px; height:40px; border-radius:4px;">
-      <div class="mini-info">
-        <p id="miniTitle" class="mini-title" style="font-weight:bold;"></p>
-        <p id="miniArtist" class="mini-artist"></p>
+      <div class="mini-thumb-wrap">
+        <img id="miniThumb" src="" alt="" />
       </div>
-      <button id="miniPlay">Play/Pause</button>
+      <div class="mini-info">
+        <p class="mini-title" id="miniTitle"></p>
+        <p class="mini-artist" id="miniArtist"></p>
+      </div>
+      <div class="mini-controls">
+        <button class="ctrl-btn" id="miniPlay">Play/Pause</button>
+      </div>
     </div>
 
-    <div id="ytContainer" style="position:absolute; top:-999px;">
+    <div id="ytContainer">
       <div id="ytPlayer"></div>
     </div>
   </div>
 
+  <script src="https://www.youtube.com/iframe_api"></script>
   <script src="script.js"></script>
 </body>
 </html>
