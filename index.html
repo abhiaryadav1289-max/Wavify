@@ -6,85 +6,112 @@
   <title>Wavify – Music for You</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
-  <style>
-    /* Chota sa fix taaki layout break na ho */
-    .hidden { display: none !important; }
-    #ytContainer { position: absolute; top: -1000px; left: -1000px; }
-  </style>
 </head>
 <body>
 
   <div id="app">
     <aside id="sidebar">
       <div class="sidebar-logo">
+        <svg class="logo-icon" viewBox="0 0 32 32" fill="none">
+          <circle cx="16" cy="16" r="16" fill="url(#lg1)"/>
+          <path d="M9 20 Q16 10 23 20" stroke="#fff" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+          <path d="M11 23 Q16 15 21 23" stroke="#fff" stroke-width="2.5" stroke-linecap="round" fill="none" opacity=".7"/>
+          <defs><linearGradient id="lg1" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#1ed760"/><stop offset="1" stop-color="#0ea844"/>
+          </linearGradient></defs>
+        </svg>
         <span class="logo-text">Wavify</span>
       </div>
+
       <nav class="sidebar-nav">
         <button class="nav-btn active" data-page="home">Home</button>
         <button class="nav-btn" data-page="search">Search</button>
         <button class="nav-btn" data-page="library">Library</button>
       </nav>
+
+      <div class="sidebar-section">
+        <p class="sidebar-label">Playlists</p>
+        <button class="create-playlist-btn" id="createPlaylistBtn">Create Playlist</button>
+        <div id="playlistList" class="playlist-list"></div>
+      </div>
     </aside>
 
     <main id="main">
-      
       <section class="page active" id="page-home">
         <header class="page-header">
-          <h1 id="greeting">Good Evening</h1>
+          <h1 class="greeting" id="greeting">Good evening</h1>
         </header>
 
+        <div class="quick-picks" id="quickPicks"></div>
+
         <section class="section">
-          <h2>Trending Now 🔥</h2>
-          <div class="cards-row" id="trendingRow">
-            <p style="padding: 20px; color: #5a5a72;">Loading music...</p>
+          <div class="section-header">
+            <h2>Trending Now 🔥</h2>
           </div>
+          <div class="cards-row" id="trendingRow">
+             <p>Loading hits...</p>
+          </div>
+        </section>
+
+        <section class="section" id="recommendedSection" style="display:none">
+          <h2>Based on your search ✨</h2>
+          <div class="cards-row" id="recommendedRow"></div>
         </section>
       </section>
 
       <section class="page" id="page-search">
         <div class="search-container">
           <div class="search-box">
-            <input type="text" id="searchInput" placeholder="Search songs or artists..." autocomplete="off" />
+            <input type="text" id="searchInput" placeholder="Search songs..." autocomplete="off" />
           </div>
         </div>
-
-        <div id="searchDefault">
-          <p class="search-hint">Find your favorite music</p>
-        </div>
-
         <div id="searchResults" style="display:none">
+          <p class="results-label" id="resultsLabel"></p>
           <div class="results-list" id="resultsList"></div>
         </div>
       </section>
 
       <section class="page" id="page-library">
-        <h1>Your Library</h1>
-        <p style="color: #a0a0b8; margin-top: 20px;">Saved songs will appear here.</p>
+        <header class="page-header">
+          <h1>Your Library</h1>
+          <div class="lib-tabs">
+            <button class="lib-tab active" data-tab="liked">Liked</button>
+            <button class="lib-tab" data-tab="playlists">Playlists</button>
+          </div>
+        </header>
+        <div class="tab-content active" id="tab-liked">
+           <div id="likedList"></div>
+        </div>
       </section>
-
     </main>
 
     <div id="miniPlayer" class="hidden">
-      <div class="mini-thumb-wrap">
-        <img id="miniThumb" src="" alt="" />
-      </div>
+      <div class="mini-thumb-wrap"><img id="miniThumb" src="" /></div>
       <div class="mini-info">
-        <p class="mini-title" id="miniTitle">Song Title</p>
+        <p id="miniTitle" class="mini-title"></p>
+        <p id="miniArtist" class="mini-artist"></p>
       </div>
       <div class="mini-controls">
-        <button class="ctrl-btn" id="miniPlay">Play/Pause</button>
-      </div>
-      <div class="mini-progress">
-        <div class="mini-progress-bar" id="miniProgressBar"></div>
+        <button id="miniPlay" class="play-btn">Play</button>
       </div>
     </div>
 
-    <div id="ytContainer">
+    <div id="fullPlayer" class="hidden">
+      <div class="player-bg" id="playerBg"></div>
+      <div class="player-inner">
+        <button id="playerDown">Down</button>
+        <div class="player-art-wrap"><img id="playerThumb" class="player-art" /></div>
+        <h2 id="playerTitle"></h2>
+        <p id="playerArtist"></p>
+        <button id="mainPlayBtn">Play/Pause</button>
+      </div>
+    </div>
+
+    <div id="ytContainer" style="position:absolute; top:-999px;">
       <div id="ytPlayer"></div>
     </div>
-
   </div>
 
   <script src="https://www.youtube.com/iframe_api"></script>
