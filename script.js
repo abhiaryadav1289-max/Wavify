@@ -1,118 +1,139 @@
+// Senior Dev Fix: Use provided API Key
 const API_KEY = 'AlzaSyArLJC-WQUZ4UOS2kXT1CerwgDSiicrxk_w';
 
-const state = {
-    player: null,
-    isPlaying: false,
-    currentQueue: [],
-    currentIndex: -1,
-    isRepeat: false,
-    isShuffle: false
-};
+// State Management to prevent memory leaks and duplication
+let player;
+let progressFrame;
+let isPlaying = false;
+let currentQueue = [];
 
-// 1. Initialize YouTube API
-function onYouTubeIframeAPIReady() {
-    state.player = new YT.Player('ytIframe', {
-        height: '0', width: '0',
+// 1. YouTube API Initialization (Crucial for page load)
+window.onYouTubeIframeAPIReady = function() {
+    player = new YT.Player('ytPlayer', { // Match your existing ytPlayer div ID
+        height: '0',
+        width: '0',
         events: {
             'onReady': onPlayerReady,
             'onStateChange': onPlayerStateChange
         }
     });
-}
+};
 
 function onPlayerReady() {
-    fetchTrending();
-    initUIListeners();
+    fetchTrending(); // Auto-load trending on start
+    initAppLogic();
 }
 
-// 2. Data Fetching Logic
+// 2. Robust Fetch Logic
 async function fetchMusic(query) {
-    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=15&q=${encodeURIComponent(query)}&type=video&videoCategoryId=10&key=${API_KEY}`;
+    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=12&q=${encodeURIComponent(query)}&type=video&videoCategoryId=10&key=${API_KEY}`;
     try {
-        const res = await fetch(url);
-        const data = await res.json();
-        if (data.error) throw data.error;
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (!data.items) return []; // Handle API errors or empty results safely
+        
         return data.items.map(item => ({
             id: item.id.videoId,
             title: item.snippet.title,
             artist: item.snippet.channelTitle,
             thumb: item.snippet.thumbnails.high.url
         }));
-    } catch (err) {
-        console.error("Wavify API Error:", err.message);
+    } catch (error) {
+        console.error("Wavify Search Error:", error);
         return [];
     }
 }
 
-// 3. Playback Engine
-function playTrack(track, queue) {
-    state.currentQueue = queue;
-    state.currentIndex = queue.findIndex(t => t.id === track.id);
-    
-    state.player.loadVideoById(track.id);
-    updatePlayerUI(track);
+// 3. Stable Rendering (Using Datasets instead of JSON hacks)
+function renderList(songs, containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    if (songs.length === 0) {
+        container.innerHTML = '<p class="error-msg">No results found or Quota exceeded.</p>';
+        return;
+    }
+
+    container.innerHTML = songs.map((song, index) => `
+        <div class="song-card" data-index="${index}" data-container="${containerId}">
+            <img src="${song.thumb}" alt="${song.title}">
+            <div class="song-info">
+                <h3>${song.title.substring(0, 40)}...</h3>
+                <p>${song.artist}</p>
+            </div>
+        </div>
+    `).join('');
+
+    // Attach stable event listeners
+    container.querySelectorAll('.song-card').forEach(card => {
+        card.onclick = () => {
+            const idx = card.dataset.index;
+            playTrack(songs[idx], songs);
+        };
+    });
 }
 
-function updatePlayerUI(track) {
-    document.getElementById('playerBar').classList.remove('hidden');
+// 4. Clean Playback Logic
+function playTrack(track, queue) {
+    if (!player || !track) return;
+
+    currentQueue = queue;
+    player.loadVideoById(track.id);
+    
+    // Sync UI elements (keeping your existing IDs)
+    const playerBar = document.getElementById('playerBar') || document.getElementById('miniPlayer');
+    if (playerBar) playerBar.classList.remove('hidden');
+
     document.getElementById('playerTitle').innerText = track.title;
     document.getElementById('playerArtist').innerText = track.artist;
     document.getElementById('playerThumb').src = track.thumb;
-    document.getElementById('playPauseBtn').innerText = '⏸';
+    
+    // Update play button state
+    const playBtn = document.getElementById('playPauseBtn') || document.getElementById('miniPlay');
+    if (playBtn) playBtn.innerText = '⏸';
 }
 
-// 4. Progress & Time Management
+// 5. Smooth Progress Sync (No Duplicate Loops)
 function onPlayerStateChange(event) {
+    const playBtn = document.getElementById('playPauseBtn') || document.getElementById('miniPlay');
+    
     if (event.data === YT.PlayerState.PLAYING) {
-        state.isPlaying = true;
-        updateProgressLoop();
+        isPlaying = true;
+        if (playBtn) playBtn.innerText = '⏸';
+        cancelAnimationFrame(progressFrame); // Clear previous loop
+        updateProgress();
     } else {
-        state.isPlaying = false;
-        if (event.data === YT.PlayerState.ENDED) handleTrackEnd();
+        isPlaying = false;
+        if (playBtn) playBtn.innerText = '▶';
+        cancelAnimationFrame(progressFrame);
     }
 }
 
-function updateProgressLoop() {
-    if (!state.isPlaying || !state.player) return;
-    const current = state.player.getCurrentTime();
-    const duration = state.player.getDuration();
-    const progress = (current / duration) * 100;
-    
-    document.getElementById('progressFill').style.width = `${progress}%`;
-    document.getElementById('currentTime').innerText = formatTime(current);
-    document.getElementById('duration').innerText = formatTime(duration);
-    
-    requestAnimationFrame(updateProgressLoop);
-}
+function updateProgress() {
+    if (!isPlaying || !player) return;
 
-// 5. UX & Search Logic
-async function handleSearch(query) {
-    if (!query) return;
-    const resultsList = document.getElementById('resultsList');
-    resultsList.innerHTML = '<p>Searching...</p>';
-    
-    const results = await fetchMusic(query);
-    if (results.length === 0) {
-        resultsList.innerHTML = 'No results found.';
-        return;
+    const current = player.getCurrentTime();
+    const duration = player.getDuration();
+    const fill = document.getElementById('progressFill') || document.getElementById('miniProgressBar');
+
+    if (fill && duration > 0) {
+        const percent = (current / duration) * 100;
+        fill.style.width = `${percent}%`;
     }
-    
-    renderList(results, 'resultsList');
+
+    // Display time updates
+    if (document.getElementById('currentTime')) {
+        document.getElementById('currentTime').innerText = formatTime(current);
+        document.getElementById('duration').innerText = formatTime(duration);
+    }
+
+    progressFrame = requestAnimationFrame(updateProgress);
 }
 
-function renderList(songs, containerId) {
-    const container = document.getElementById(containerId);
-    container.innerHTML = songs.map(song => `
-        <div class="song-card" onclick='playTrack(${JSON.stringify(song).replace(/'/g, "&apos;")}, ${JSON.stringify(songs).replace(/'/g, "&apos;")})'>
-            <img src="${song.thumb}">
-            <h3>${song.title.substring(0, 35)}...</h3>
-            <p>${song.artist}</p>
-        </div>
-    `).join('');
-}
-
+// 6. Helpers & Initializers
 async function fetchTrending() {
-    const songs = await fetchMusic("top hits 2026 trending");
+    const songs = await fetchMusic("latest bollywood and global hits 2026");
     renderList(songs, 'trendingRow');
 }
 
@@ -122,31 +143,17 @@ function formatTime(time) {
     return `${min}:${sec < 10 ? '0' : ''}${sec}`;
 }
 
-function initUIListeners() {
-    // Search Debounce
-    let debounce;
-    document.getElementById('searchInput').oninput = (e) => {
-        clearTimeout(debounce);
-        debounce = setTimeout(() => handleSearch(e.target.value), 600);
-    };
-
-    // Navigation
-    document.querySelectorAll('.nav-item').forEach(btn => {
-        btn.onclick = () => {
-            document.querySelectorAll('.page, .nav-item').forEach(el => el.classList.remove('active'));
-            btn.classList.add('active');
-            document.getElementById(`page-${btn.dataset.page}`).classList.add('active');
+function initAppLogic() {
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.onkeypress = async (e) => {
+            if (e.key === 'Enter') {
+                const resultsContainer = document.getElementById('searchResults');
+                if (resultsContainer) resultsContainer.style.display = 'block';
+                
+                const results = await fetchMusic(searchInput.value);
+                renderList(results, 'resultsList');
+            }
         };
-    });
-
-    // Simple Play/Pause Toggle
-    document.getElementById('playPauseBtn').onclick = () => {
-        if (state.isPlaying) {
-            state.player.pauseVideo();
-            document.getElementById('playPauseBtn').innerText = '▶';
-        } else {
-            state.player.playVideo();
-            document.getElementById('playPauseBtn').innerText = '⏸';
-        }
-    };
+    }
 }
