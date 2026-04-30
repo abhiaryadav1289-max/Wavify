@@ -1,16 +1,9 @@
 /* ═══════════════════════════════════════════════════════
-   WAVIFY – script.js (UPDATED WITH API KEY)
-   ───────────────────────────────────────────────────────
-   ⚠️  API KEY HAS BEEN ADDED BELOW
+   WAVIFY – script.js (UPDATED & FIXED)
 ═══════════════════════════════════════════════════════ */
-const YT_API_KEY = 'AlzaSyArLJC-WQUZ4UOS2kXT1CerwgDSiicrxk_w'; // ← Key added from image
-
-/* ── API Base ── */
+const YT_API_KEY = 'AlzaSyArLJC-WQUZ4UOS2kXT1CerwgDSiicrxk_w'; 
 const YT_API = 'https://www.googleapis.com/youtube/v3';
 
-/* ═══════════════════════════════════════════
-   STATE
-═══════════════════════════════════════════ */
 const state = {
   currentTrack: null,
   queue: [],
@@ -27,12 +20,8 @@ const state = {
   ytPlayer: null,
   ytReady: false,
   progressInterval: null,
-  addToPlaylistTarget: null,
 };
 
-/* ═══════════════════════════════════════════
-   DOM REFS
-═══════════════════════════════════════════ */
 const $ = id => document.getElementById(id);
 const $$ = sel => document.querySelectorAll(sel);
 
@@ -45,24 +34,12 @@ const DOM = {
   recommendedRow: $('recommendedRow'),
   recentSection: $('recentSection'),
   recentRow: $('recentRow'),
-
   searchInput: $('searchInput'),
   clearSearch: $('clearSearch'),
-  searchSuggestions: $('searchSuggestions'),
-  searchDefault: $('searchDefault'),
   searchResults: $('searchResults'),
   resultsList: $('resultsList'),
   resultsLabel: $('resultsLabel'),
-  browseChips: $('browseChips'),
-
-  likedList: $('likedList'),
-  likedEmpty: $('likedEmpty'),
-  recentList: $('recentList'),
-  recentEmpty: $('recentEmpty'),
-  playlistsView: $('playlistsView'),
-  playlistsEmpty: $('playlistsEmpty'),
-  playlistList: $('playlistList'),
-
+  searchDefault: $('searchDefault'),
   miniPlayer: $('miniPlayer'),
   miniThumb: $('miniThumb'),
   miniTitle: $('miniTitle'),
@@ -71,134 +48,166 @@ const DOM = {
   miniNext: $('miniNext'),
   miniLike: $('miniLike'),
   miniProgressBar: $('miniProgressBar'),
-
   fullPlayer: $('fullPlayer'),
-  playerBg: $('playerBg'),
   playerThumb: $('playerThumb'),
   playerTitle: $('playerTitle'),
   playerArtist: $('playerArtist'),
-  playerDown: $('playerDown'),
-  playerLike: $('playerLike'),
-  progressTrack: $('progressTrack'),
-  progressFill: $('progressFill'),
-  progressThumb: $('progressThumb'),
+  mainPlayBtn: $('mainPlayBtn'),
   timeElapsed: $('timeElapsed'),
   timeDuration: $('timeDuration'),
-  mainPlayBtn: $('mainPlayBtn'),
-  prevBtn: $('prevBtn'),
-  nextBtn: $('nextBtn'),
-  shuffleBtn: $('shuffleBtn'),
-  repeatBtn: $('repeatBtn'),
-  volumeSlider: $('volumeSlider'),
-  addToPlaylistBtn: $('addToPlaylistBtn'),
-
-  playlistModal: $('playlistModal'),
-  modalBackdrop: $('modalBackdrop'),
-  modalPlaylistList: $('modalPlaylistList'),
-  modalCreateNew: $('modalCreateNew'),
-  modalClose: $('modalClose'),
-
-  createPlaylistModal: $('createPlaylistModal'),
-  createModalBackdrop: $('createModalBackdrop'),
-  playlistNameInput: $('playlistNameInput'),
-  confirmCreatePlaylist: $('confirmCreatePlaylist'),
-  cancelCreatePlaylist: $('cancelCreatePlaylist'),
-
+  progressFill: $('progressFill'),
+  progressThumb: $('progressThumb'),
   toast: $('toast'),
 };
 
-/* ═══════════════════════════════════════════
-   CATEGORIES
-═══════════════════════════════════════════ */
-const CATEGORIES = [
-  { name: 'Lo-Fi',    emoji: '☕',  query: 'lofi hip hop music',          color: '#3d2b1f' },
-  { name: 'Study',    emoji: '📚',  query: 'study music concentration',   color: '#1a2a3a' },
-  { name: 'Sad',      emoji: '🌧️', query: 'sad emotional songs',          color: '#1f1a2e' },
-  { name: 'Party',    emoji: '🎉',  query: 'party hits 2024',             color: '#2a1a2a' },
-  { name: 'Workout',  emoji: '🏋️', query: 'workout gym music',            color: '#1a2a1a' },
-  { name: 'Chill',    emoji: '🌊',  query: 'chill vibes music',           color: '#1a2230' },
-  { name: 'Bollywood',emoji: '🎬',  query: 'bollywood hits 2024',         color: '#2a1a10' },
-  { name: 'Pop',      emoji: '🌟',  query: 'pop songs 2024 hits',         color: '#1c1a2a' },
-  { name: 'Hip-Hop',  emoji: '🎤',  query: 'hip hop rap 2024',            color: '#1a1a1a' },
-];
-
-const QUICK_QUERIES = [
-  'top trending songs 2024',
-  'best hindi songs 2024',
-  'english hits 2024',
-  'midnight melodies',
-];
-
-const SEARCH_CHIPS = ['Lo-Fi', 'Bollywood', 'Pop Hits', 'Hip-Hop', 'Sad Songs', 'Party Mix', 'Chill Vibes', 'Workout'];
-
-/* ═══════════════════════════════════════════
-   YOUTUBE IFRAME API
-═══════════════════════════════════════════ */
+/* ── YouTube API Setup ── */
 window.onYouTubeIframeAPIReady = () => {
   state.ytPlayer = new YT.Player('ytPlayer', {
-    height: '1',
-    width: '1',
-    playerVars: { autoplay: 0, controls: 0, rel: 0, modestbranding: 1, iv_load_policy: 3 },
+    height: '0',
+    width: '0',
     events: {
-      onReady: () => { state.ytReady = true; },
+      onReady: () => { state.ytReady = true; initHome(); },
       onStateChange: onPlayerStateChange,
     },
   });
 };
 
 function onPlayerStateChange(e) {
-  const S = YT.PlayerState;
-  if (e.data === S.PLAYING) {
+  if (e.data === YT.PlayerState.PLAYING) {
     state.isPlaying = true;
-    state.duration = state.ytPlayer.getDuration();
     updatePlayIcons(true);
     startProgressTracking();
-    if (state.currentTrack) {
-      DOM.playerThumb.classList.add('playing');
-    }
-  } else if (e.data === S.PAUSED) {
+  } else if (e.data === YT.PlayerState.PAUSED) {
     state.isPlaying = false;
     updatePlayIcons(false);
-    stopProgressTracking();
-    DOM.playerThumb.classList.remove('playing');
-  } else if (e.data === S.ENDED) {
-    DOM.playerThumb.classList.remove('playing');
-    stopProgressTracking();
-    if (state.isRepeat) {
-      playTrack(state.currentTrack, false);
-    } else {
-      playNext();
-    }
+  } else if (e.data === YT.PlayerState.ENDED) {
+    playNext();
   }
 }
 
-/* ═══════════════════════════════════════════
-   YOUTUBE API CALLS
-═══════════════════════════════════════════ */
-async function searchYT(query, maxResults = 12) {
-  if (!YT_API_KEY || YT_API_KEY === 'YOUR_YOUTUBE_API_KEY_HERE') {
-    showToast('⚠️ Add your YouTube API Key in script.js');
-    return [];
-  }
+/* ── Search Logic (Fix for Search Button) ── */
+DOM.searchInput.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') runSearch(DOM.searchInput.value);
+});
+
+async function runSearch(query) {
+  if (!query) return;
+  DOM.searchDefault.style.display = 'none';
+  DOM.searchResults.style.display = 'block';
+  DOM.resultsLabel.textContent = `Results for "${query}"`;
+  
+  const tracks = await searchYT(query);
+  DOM.resultsList.innerHTML = '';
+  tracks.forEach((track, index) => {
+    DOM.resultsList.appendChild(renderResultItem(track, index, tracks));
+  });
+}
+
+async function searchYT(query) {
   try {
-    const url = `${YT_API}/search?part=snippet&type=video&videoCategoryId=10&q=${encodeURIComponent(query)}&maxResults=${maxResults}&key=${YT_API_KEY}`;
+    const url = `${YT_API}/search?part=snippet&type=video&videoCategoryId=10&q=${encodeURIComponent(query)}&maxResults=15&key=${YT_API_KEY}`;
     const r = await fetch(url);
     const d = await r.json();
-    if (d.error) { 
-      showToast('API Error: ' + (d.error.message || 'Check your key')); 
-      return []; 
-    }
     return (d.items || []).map(item => ({
-      id:     item.id.videoId,
-      title:  item.snippet.title,
+      id: item.id.videoId,
+      title: item.snippet.title,
       artist: item.snippet.channelTitle,
-      thumb:  item.snippet.thumbnails?.high?.url || item.snippet.thumbnails?.medium?.url || '',
+      thumb: item.snippet.thumbnails.high.url
     }));
   } catch (err) {
-    console.error(err);
-    showToast('Network error.');
+    showToast("Error fetching music");
     return [];
   }
 }
 
-// ... Rest of your application logic follows (playTrack, UI updates, etc.)
+/* ── Playback Logic ── */
+function playTrack(track) {
+  if (!state.ytReady) return;
+  state.currentTrack = track;
+  state.ytPlayer.loadVideoById(track.id);
+  
+  DOM.miniThumb.src = track.thumb;
+  DOM.miniTitle.textContent = track.title;
+  DOM.miniArtist.textContent = track.artist;
+  DOM.miniPlayer.classList.remove('hidden');
+  
+  // Update Full Player
+  DOM.playerThumb.src = track.thumb;
+  DOM.playerTitle.textContent = track.title;
+  DOM.playerArtist.textContent = track.artist;
+}
+
+function updatePlayIcons(playing) {
+  const playIcons = $$('.icon-play');
+  const pauseIcons = $$('.icon-pause');
+  playIcons.forEach(i => i.classList.toggle('hidden', playing));
+  pauseIcons.forEach(i => i.classList.toggle('hidden', !playing));
+}
+
+function startProgressTracking() {
+  if (state.progressInterval) clearInterval(state.progressInterval);
+  state.progressInterval = setInterval(() => {
+    if (state.isPlaying) {
+      const cur = state.ytPlayer.getCurrentTime();
+      const dur = state.ytPlayer.getDuration();
+      const pct = (cur / dur) * 100;
+      DOM.miniProgressBar.style.width = pct + '%';
+      DOM.progressFill.style.width = pct + '%';
+      DOM.timeElapsed.textContent = formatTime(cur);
+      DOM.timeDuration.textContent = formatTime(dur);
+    }
+  }, 1000);
+}
+
+function formatTime(sec) {
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${m}:${s < 10 ? '0' : ''}${s}`;
+}
+
+/* ── UI Rendering ── */
+function renderResultItem(track, index, allTracks) {
+  const div = document.createElement('div');
+  div.className = 'result-item';
+  div.innerHTML = `
+    <img src="${track.thumb}" class="result-thumb">
+    <div class="result-info">
+      <div class="result-title">${track.title}</div>
+      <div class="result-artist">${track.artist}</div>
+    </div>
+  `;
+  div.onclick = () => playTrack(track);
+  return div;
+}
+
+function showToast(msg) {
+  DOM.toast.textContent = msg;
+  DOM.toast.classList.remove('hidden');
+  setTimeout(() => DOM.toast.classList.add('hidden'), 3000);
+}
+
+// Sidebar Navigation
+$$('.nav-btn, .bottom-nav-btn').forEach(btn => {
+  btn.onclick = () => {
+    const page = btn.dataset.page;
+    $$('.page').forEach(p => p.classList.remove('active'));
+    $(`page-${page}`).classList.add('active');
+  };
+});
+
+async function initHome() {
+  const trending = await searchYT("latest songs 2024");
+  DOM.trendingRow.innerHTML = '';
+  trending.forEach(t => {
+    const card = document.createElement('div');
+    card.className = 'song-card';
+    card.innerHTML = `<div class="card-thumb-wrap"><img src="${t.thumb}"></div><div class="card-title">${t.title}</div>`;
+    card.onclick = () => playTrack(t);
+    DOM.trendingRow.appendChild(card);
+  });
+}
+
+DOM.miniPlay.onclick = () => {
+  if (state.isPlaying) state.ytPlayer.pauseVideo();
+  else state.ytPlayer.playVideo();
+};
