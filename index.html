@@ -1,104 +1,83 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Wavify – Music for You</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css" />
-  <style>
-    /* Taaki load hote hi screen khali na dikhe */
-    #ytContainer { position: absolute; top: -1000px; left: -1000px; visibility: hidden; }
-    .hidden { display: none !important; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wavify – Premium Music</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Syne:wght@700&display=swap" rel="stylesheet">
 </head>
 <body>
+    <div id="app">
+        <aside id="sidebar">
+            <div class="logo">Wavify</div>
+            <nav>
+                <button class="nav-item active" data-page="home">Home</button>
+                <button class="nav-item" data-page="search">Search</button>
+                <button class="nav-item" data-page="library">Library</button>
+            </nav>
+            <div class="sidebar-section">
+                <p class="section-title">Your Collection</p>
+                <button class="action-btn" id="likedSongsBtn">Liked Songs</button>
+            </div>
+        </aside>
 
-  <div id="app">
-    <aside id="sidebar">
-      <div class="sidebar-logo">
-        <span class="logo-text">Wavify</span>
-      </div>
-      <nav class="sidebar-nav">
-        <button class="nav-btn active" data-page="home">Home</button>
-        <button class="nav-btn" data-page="search">Search</button>
-        <button class="nav-btn" data-page="library">Library</button>
-      </nav>
+        <main id="main">
+            <section class="page active" id="page-home">
+                <header><h1>Good Evening</h1></header>
+                <div class="section">
+                    <h2>Trending Now 🔥</h2>
+                    <div class="cards-grid" id="trendingRow">
+                        </div>
+                </div>
+                <div class="section" id="recentSection" style="display:none">
+                    <h2>Recently Played</h2>
+                    <div class="cards-grid" id="recentRow"></div>
+                </div>
+            </section>
 
-      <div class="sidebar-section">
-        <p class="sidebar-label">Playlists</p>
-        <button class="create-playlist-btn" id="createPlaylistBtn">Create Playlist</button>
-        <div id="playlistList" class="playlist-list"></div>
-      </div>
-    </aside>
+            <section class="page" id="page-search">
+                <div class="search-bar-wrap">
+                    <input type="text" id="searchInput" placeholder="What do you want to listen to?" autocomplete="off">
+                </div>
+                <div id="searchResults" class="results-container">
+                    <div class="results-list" id="resultsList"></div>
+                </div>
+            </section>
+        </main>
 
-    <main id="main">
-      <section class="page active" id="page-home">
-        <header class="page-header">
-          <h1 id="greeting">Good evening</h1>
-        </header>
-
-        <div class="quick-picks" id="quickPicks">
-           </div>
-
-        <section class="section">
-          <div class="section-header">
-            <h2>Trending Now 🔥</h2>
-          </div>
-          <div class="cards-row" id="trendingRow">
-            <p style="padding:20px; color:#aaa;">Loading songs...</p>
-          </div>
-        </section>
-
-        <section class="section" id="recommendedSection" style="display:none">
-          <h2>Recommended ✨</h2>
-          <div class="cards-row" id="recommendedRow"></div>
-        </section>
-      </section>
-
-      <section class="page" id="page-search">
-        <div class="search-container">
-          <div class="search-box">
-            <input type="text" id="searchInput" placeholder="Search songs, artists..." autocomplete="off" />
-          </div>
+        <div id="playerBar" class="player-bar hidden">
+            <div class="track-info" id="openFullPlayer">
+                <img id="playerThumb" src="" alt="">
+                <div class="text">
+                    <div id="playerTitle" class="title"></div>
+                    <div id="playerArtist" class="artist"></div>
+                </div>
+            </div>
+            <div class="player-controls">
+                <div class="btns">
+                    <button id="prevBtn" class="ctrl-icon secondary">⏮</button>
+                    <button id="playPauseBtn" class="play-trigger">▶</button>
+                    <button id="nextBtn" class="ctrl-icon secondary">⏭</button>
+                </div>
+                <div class="progress-container">
+                    <span id="currentTime">0:00</span>
+                    <div class="progress-bg" id="progressClickArea">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <span id="duration">0:00</span>
+                </div>
+            </div>
+            <div class="extra-controls">
+                <button id="shuffleBtn" class="ctrl-icon secondary">🔀</button>
+                <button id="repeatBtn" class="ctrl-icon secondary">🔁</button>
+            </div>
         </div>
-        <div id="searchResults" style="display:none">
-          <p class="results-label" id="resultsLabel"></p>
-          <div class="results-list" id="resultsList"></div>
-        </div>
-      </section>
 
-      <section class="page" id="page-library">
-        <h1>Your Library</h1>
-        <div class="lib-tabs">
-          <button class="lib-tab active" data-tab="liked">Liked</button>
-        </div>
-        <div id="likedList" class="results-list"></div>
-      </section>
-    </main>
-
-    <div id="miniPlayer" class="hidden">
-      <div class="mini-thumb-wrap">
-        <img id="miniThumb" src="" alt="" />
-      </div>
-      <div class="mini-info">
-        <p class="mini-title" id="miniTitle"></p>
-        <p class="mini-artist" id="miniArtist"></p>
-      </div>
-      <div class="mini-controls">
-        <button class="ctrl-btn" id="miniPlay">Play/Pause</button>
-      </div>
+        <div id="ytWrapper" style="display:none"><div id="ytIframe"></div></div>
     </div>
 
-    <div id="ytContainer">
-      <div id="ytPlayer"></div>
-    </div>
-  </div>
-
-  <script src="https://www.youtube.com/iframe_api"></script>
-  <script src="script.js"></script>
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <script src="script.js"></script>
 </body>
 </html>
